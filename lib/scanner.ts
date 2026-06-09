@@ -136,12 +136,13 @@ async function fetchSSL(domain: string): Promise<SSLResult> {
             else if (expiresSoon) grade = 'B'
             else if (protocol === 'TLSv1.3') grade = 'A+'
             else grade = 'A'
+            const issuerObj = cert.issuer as unknown as Record<string, string>
             resolve({
               grade, host: domain, hasWarnings: expiresSoon || isWeakProtocol,
               protocol, keyStrength: keyBits,
               validFrom: validFrom?.toISOString().split('T')[0],
               validTo: validTo?.toISOString().split('T')[0],
-              issuer: cert.issuer?.O || cert.issuer?.CN,
+              issuer: String(issuerObj?.O || issuerObj?.CN || ''),
             })
           } catch {
             socket.destroy()
