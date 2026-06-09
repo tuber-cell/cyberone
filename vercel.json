@@ -1,0 +1,16 @@
+{
+  "functions": {
+    "pages/api/scan.ts": {
+      "maxDuration": 10
+    },
+    "pages/api/auth.ts": {
+      "maxDuration": 10
+    },
+    "pages/api/history.ts": {
+      "maxDuration": 10
+    },
+    "pages/api/report.ts": {
+      "maxDuration": 10
+    }
+  }
+}
