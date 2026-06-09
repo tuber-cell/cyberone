@@ -1,7 +1,6 @@
 import type { ScanResults } from '@/lib/scanner'
 
 export async function generatePDFReport(results: ScanResults, userEmail?: string) {
-  // Dynamic import to avoid SSR issues
   const { default: jsPDF } = await import('jspdf')
   const { default: autoTable } = await import('jspdf-autotable')
 
@@ -10,7 +9,6 @@ export async function generatePDFReport(results: ScanResults, userEmail?: string
   const pageHeight = doc.internal.pageSize.getHeight()
   let yPos = 20
 
-  // ── Helper functions ────────────────────────────────────
   function addPage() {
     doc.addPage()
     yPos = 20
@@ -31,40 +29,29 @@ export async function generatePDFReport(results: ScanResults, userEmail?: string
     doc.text(`TARGET: ${results.target}`, pageWidth - 10, 8, { align: 'right' })
   }
 
-  // ── Cover header ────────────────────────────────────────
   doc.setFillColor(2, 4, 8)
   doc.rect(0, 0, pageWidth, pageHeight, 'F')
-
-  // Accent bar
   doc.setFillColor(0, 212, 255)
   doc.rect(0, 0, 4, pageHeight, 'F')
-
-  // Title
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(28)
   doc.setTextColor(255, 255, 255)
   doc.text('CYBERONE', 15, 40)
-
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(12)
   doc.setTextColor(0, 212, 255)
   doc.text('SECURITY SCAN REPORT', 15, 50)
-
-  // Meta
   doc.setFontSize(9)
   doc.setTextColor(74, 96, 112)
   doc.text(`Target: ${results.target}`, 15, 70)
   doc.text(`Scanned: ${new Date(results.timestamp).toLocaleString()}`, 15, 77)
   if (userEmail) doc.text(`Operator: ${userEmail}`, 15, 84)
-
-  // Divider
   doc.setDrawColor(15, 33, 51)
   doc.setLineWidth(0.5)
   doc.line(15, 95, pageWidth - 15, 95)
 
   yPos = 110
 
-  // ── Executive Summary ────────────────────────────────────
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(14)
   doc.setTextColor(0, 212, 255)
@@ -86,22 +73,11 @@ export async function generatePDFReport(results: ScanResults, userEmail?: string
     styles: { font: 'courier', fontSize: 8, fillColor: [8, 14, 22], textColor: [200, 216, 232] },
     headStyles: { fillColor: [13, 24, 36], textColor: [0, 212, 255], fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [10, 18, 28] },
-    columnStyles: {
-      2: {
-        cellCallback: (cell: { text: string[]; styles: { textColor: number[] } }) => {
-          const val = cell.text[0]
-          if (val === 'PASS') cell.styles.textColor = [0, 255, 136]
-          else if (val === 'HIGH') cell.styles.textColor = [255, 32, 82]
-          else if (val === 'WARN') cell.styles.textColor = [255, 184, 0]
-        }
-      }
-    },
     margin: { left: 15, right: 15 },
   })
 
   yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15
 
-  // ── SSL Details ──────────────────────────────────────────
   checkPageBreak(50)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(12)
@@ -127,7 +103,6 @@ export async function generatePDFReport(results: ScanResults, userEmail?: string
 
   yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15
 
-  // ── Open Ports ───────────────────────────────────────────
   if (results.ports.ports.length > 0) {
     checkPageBreak(40)
     doc.setFont('helvetica', 'bold')
@@ -135,7 +110,6 @@ export async function generatePDFReport(results: ScanResults, userEmail?: string
     doc.setTextColor(0, 212, 255)
     doc.text('OPEN PORTS', 15, yPos)
     yPos += 8
-
     autoTable(doc, {
       startY: yPos,
       head: [['Port', 'Protocol', 'Service', 'State']],
@@ -148,7 +122,6 @@ export async function generatePDFReport(results: ScanResults, userEmail?: string
     yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15
   }
 
-  // ── Subdomains ───────────────────────────────────────────
   if (results.subdomains.found.length > 0) {
     checkPageBreak(40)
     doc.setFont('helvetica', 'bold')
@@ -156,7 +129,6 @@ export async function generatePDFReport(results: ScanResults, userEmail?: string
     doc.setTextColor(0, 212, 255)
     doc.text('SUBDOMAINS', 15, yPos)
     yPos += 8
-
     autoTable(doc, {
       startY: yPos,
       head: [['Subdomain']],
@@ -169,7 +141,6 @@ export async function generatePDFReport(results: ScanResults, userEmail?: string
     yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15
   }
 
-  // ── Breach Data ──────────────────────────────────────────
   if (results.breaches.breaches.length > 0) {
     checkPageBreak(40)
     doc.setFont('helvetica', 'bold')
@@ -177,15 +148,10 @@ export async function generatePDFReport(results: ScanResults, userEmail?: string
     doc.setTextColor(255, 32, 82)
     doc.text('DATA BREACHES', 15, yPos)
     yPos += 8
-
     autoTable(doc, {
       startY: yPos,
       head: [['Breach Name', 'Date', 'Data Types']],
-      body: results.breaches.breaches.map(b => [
-        b.name,
-        b.date,
-        b.dataClasses.slice(0, 3).join(', ')
-      ]),
+      body: results.breaches.breaches.map(b => [b.name, b.date, b.dataClasses.slice(0, 3).join(', ')]),
       styles: { font: 'courier', fontSize: 8, fillColor: [8, 14, 22], textColor: [200, 216, 232] },
       headStyles: { fillColor: [13, 24, 36], textColor: [255, 32, 82], fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [10, 18, 28] },
@@ -194,7 +160,6 @@ export async function generatePDFReport(results: ScanResults, userEmail?: string
     yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15
   }
 
-  // ── Technologies ─────────────────────────────────────────
   if (results.technologies.technologies.length > 0) {
     checkPageBreak(40)
     doc.setFont('helvetica', 'bold')
@@ -202,7 +167,6 @@ export async function generatePDFReport(results: ScanResults, userEmail?: string
     doc.setTextColor(0, 212, 255)
     doc.text('DETECTED TECHNOLOGIES', 15, yPos)
     yPos += 8
-
     autoTable(doc, {
       startY: yPos,
       head: [['Technology', 'Category', 'Version']],
@@ -214,7 +178,6 @@ export async function generatePDFReport(results: ScanResults, userEmail?: string
     })
   }
 
-  // ── Footer on all pages ──────────────────────────────────
   const totalPages = doc.getNumberOfPages()
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i)
