@@ -49,7 +49,6 @@ export async function generatePDFReport(results: ScanResults, userEmail?: string
   doc.setDrawColor(15, 33, 51)
   doc.setLineWidth(0.5)
   doc.line(15, 95, pageWidth - 15, 95)
-
   yPos = 110
 
   doc.setFont('helvetica', 'bold')
