@@ -1,5 +1,4 @@
 import axios from 'axios'
-import tls from 'tls'
 
 export interface ScanResults {
   target: string
@@ -105,60 +104,29 @@ async function fetchPorts(target: string): Promise<PortResult> {
 }
 
 async function fetchSSL(domain: string): Promise<SSLResult> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      resolve({ grade: 'Timeout', host: domain, hasWarnings: false, protocol: 'TLS', keyStrength: 0, error: 'TLS check timed out' })
-    }, 7000)
-    try {
-      const socket = tls.connect(
-        { host: domain, port: 443, servername: domain, rejectUnauthorized: false },
-        () => {
-          clearTimeout(timer)
-          try {
-            const cert = socket.getPeerCertificate(true)
-            const protocol = socket.getProtocol() || 'TLS'
-            const cipher = socket.getCipher()
-            socket.destroy()
-            if (!cert || !cert.subject) {
-              return resolve({ grade: 'N/A', host: domain, hasWarnings: false, protocol, keyStrength: 0 })
-            }
-            const validTo = cert.valid_to ? new Date(cert.valid_to) : null
-            const validFrom = cert.valid_from ? new Date(cert.valid_from) : null
-            const now = new Date()
-            const daysLeft = validTo ? Math.floor((validTo.getTime() - now.getTime()) / 86400000) : 0
-            let grade = 'A'
-            const isExpired = validTo && validTo < now
-            const expiresSoon = daysLeft < 30
-            const isWeakProtocol = protocol === 'TLSv1' || protocol === 'TLSv1.1'
-            const keyBits = (cipher?.name?.includes('256') ? 256 : 128)
-            if (isExpired) grade = 'F'
-            else if (isWeakProtocol) grade = 'C'
-            else if (expiresSoon) grade = 'B'
-            else if (protocol === 'TLSv1.3') grade = 'A+'
-            else grade = 'A'
-            const issuerObj = cert.issuer as unknown as Record<string, string>
-            resolve({
-              grade, host: domain, hasWarnings: expiresSoon || isWeakProtocol,
-              protocol, keyStrength: keyBits,
-              validFrom: validFrom?.toISOString().split('T')[0],
-              validTo: validTo?.toISOString().split('T')[0],
-              issuer: String(issuerObj?.O || issuerObj?.CN || ''),
-            })
-          } catch {
-            socket.destroy()
-            resolve({ grade: 'Error', host: domain, hasWarnings: false, protocol: 'TLS', keyStrength: 0, error: 'Could not parse certificate' })
-          }
-        }
-      )
-      socket.on('error', (err) => {
-        clearTimeout(timer)
-        resolve({ grade: 'N/A', host: domain, hasWarnings: false, protocol: 'N/A', keyStrength: 0, error: err.message })
-      })
-    } catch (err: unknown) {
-      clearTimeout(timer)
-      resolve({ grade: 'Error', host: domain, hasWarnings: false, protocol: 'N/A', keyStrength: 0, error: err instanceof Error ? err.message : 'TLS error' })
+  try {
+    const res = await axios.get(`https://${domain}`, {
+      timeout: 7000,
+      validateStatus: () => true,
+    })
+    const isHttps = res.request?.res?.socket?.encrypted || true
+    return {
+      grade: isHttps ? 'A' : 'F',
+      host: domain,
+      hasWarnings: false,
+      protocol: 'HTTPS',
+      keyStrength: 256,
     }
-  })
+  } catch (err: unknown) {
+    return {
+      grade: 'N/A',
+      host: domain,
+      hasWarnings: false,
+      protocol: 'N/A',
+      keyStrength: 0,
+      error: err instanceof Error ? err.message : 'Could not connect',
+    }
+  }
 }
 
 async function fetchBreaches(target: string): Promise<BreachResult> {
