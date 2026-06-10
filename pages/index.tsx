@@ -38,7 +38,6 @@ export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null)
   const progressInterval = useRef<NodeJS.Timeout | null>(null)
 
-  // Load user from localStorage on mount
   useEffect(() => {
     const savedToken = localStorage.getItem('cyberone_token')
     const savedUser = localStorage.getItem('cyberone_user')
@@ -89,9 +88,7 @@ export default function Home() {
     setRateLimitInfo('')
     setProgress(0)
     setProgressLabel('Initializing scan...')
-
     animateProgress()
-
     try {
       const res = await fetch('/api/scan', {
         method: 'POST',
@@ -101,19 +98,15 @@ export default function Home() {
         },
         body: JSON.stringify({ target: target.trim() }),
       })
-
       const data = await res.json()
-
       if (res.status === 429) {
         setError(data.message || 'Rate limit exceeded')
         setRateLimitInfo(`Resets at: ${new Date(data.resetAt).toLocaleTimeString()}`)
         return
       }
-
       if (!res.ok) {
         throw new Error(data.error || 'Scan failed')
       }
-
       setProgress(100)
       setProgressLabel('Complete!')
       await new Promise(r => setTimeout(r, 400))
@@ -143,17 +136,14 @@ export default function Home() {
       </Head>
 
       <div className="min-h-screen bg-cyber-bg bg-grid bg-grid text-cyber-text">
-        {/* Animated background glow */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-cyber-accent/5 blur-3xl" />
           <div className="absolute top-1/3 -right-40 w-80 h-80 rounded-full bg-cyber-purple/5 blur-3xl" />
           <div className="absolute bottom-0 left-1/3 w-64 h-64 rounded-full bg-cyber-green/3 blur-3xl" />
         </div>
 
-        {/* ── NAV ── */}
         <nav className="relative z-10 border-b border-cyber-border bg-cyber-surface/80 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-            {/* Logo */}
             <div className="flex items-center gap-3">
               <div className="relative w-7 h-7">
                 <div className="absolute inset-0 border-2 border-cyber-accent rounded-sm rotate-45 scale-75" />
@@ -170,8 +160,6 @@ export default function Home() {
                 SECURITY INTELLIGENCE
               </span>
             </div>
-
-            {/* Nav right */}
             <div className="flex items-center gap-3">
               {user ? (
                 <>
@@ -208,26 +196,20 @@ export default function Home() {
           </div>
         </nav>
 
-        {/* ── MAIN CONTENT ── */}
         <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
           <div className="flex gap-6">
-            {/* History sidebar */}
             {showHistory && user && (
               <div className="w-64 shrink-0 animate-fade-up">
                 <ScanHistory
                   token={token}
-                  onSelectScan={(r) => setResults(r as ScanResults)}
+                  onSelectScan={(r) => setResults(r as unknown as ScanResults)}
                 />
               </div>
             )}
 
-            {/* Main column */}
             <div className="flex-1 min-w-0">
-
-              {/* Hero */}
               {!results && !scanning && (
                 <div className="text-center mb-12 animate-fade-up">
-                  {/* Radar animation */}
                   <div className="relative w-24 h-24 mx-auto mb-8">
                     <div className="absolute inset-0 rounded-full border border-cyber-accent/20" />
                     <div className="absolute inset-2 rounded-full border border-cyber-accent/15" />
@@ -243,7 +225,6 @@ export default function Home() {
                       <div className="w-2 h-2 bg-cyber-accent rounded-full" style={{ boxShadow: '0 0 8px #00d4ff' }} />
                     </div>
                   </div>
-
                   <h1 className="font-display font-extrabold text-4xl sm:text-5xl text-white mb-3">
                     Security Intelligence
                     <br />
@@ -256,15 +237,12 @@ export default function Home() {
                 </div>
               )}
 
-              {/* ── SCAN INPUT ── */}
               <div className="mb-6">
                 <div className="cyber-panel p-1 animate-fade-up" style={{ animationDelay: '0.1s' }}>
                   <div className="flex gap-1">
-                    {/* Terminal prefix */}
                     <div className="flex items-center px-4 border-r border-cyber-border shrink-0">
                       <span className="font-mono text-cyber-accent text-sm">$</span>
                     </div>
-                    {/* Input */}
                     <input
                       ref={inputRef}
                       type="text"
@@ -275,7 +253,6 @@ export default function Home() {
                       disabled={scanning}
                       className="flex-1 bg-transparent px-4 py-4 font-mono text-sm text-cyber-text placeholder-cyber-muted focus:outline-none disabled:opacity-50"
                     />
-                    {/* Scan button */}
                     <button
                       onClick={handleScan}
                       disabled={scanning || !target.trim()}
@@ -297,8 +274,6 @@ export default function Home() {
                     </button>
                   </div>
                 </div>
-
-                {/* Rate limit info */}
                 {!user && !scanning && !results && (
                   <div className="mt-2 text-center font-mono text-xs text-cyber-muted">
                     Anonymous: 1 scan/day •{' '}
@@ -310,7 +285,6 @@ export default function Home() {
                 )}
               </div>
 
-              {/* ── PROGRESS BAR ── */}
               {scanning && (
                 <div className="cyber-panel p-5 mb-6 animate-fade-up">
                   <div className="flex items-center justify-between mb-3">
@@ -320,13 +294,9 @@ export default function Home() {
                   <div className="w-full h-2 bg-cyber-surface rounded-full overflow-hidden">
                     <div
                       className="h-full bg-cyber-accent rounded-full transition-all duration-700 ease-out"
-                      style={{
-                        width: `${progress}%`,
-                        boxShadow: '0 0 10px rgba(0,212,255,0.5)',
-                      }}
+                      style={{ width: `${progress}%`, boxShadow: '0 0 10px rgba(0,212,255,0.5)' }}
                     />
                   </div>
-                  {/* Scanning animation */}
                   <div className="mt-4 font-mono text-xs text-cyber-muted space-y-1">
                     {SCAN_STEPS.filter(s => s.pct <= progress).slice(-3).map((s, i, arr) => (
                       <div
@@ -337,16 +307,13 @@ export default function Home() {
                       >
                         <span>{i === arr.length - 1 ? '▶' : '✓'}</span>
                         <span>{s.label}</span>
-                        {i === arr.length - 1 && (
-                          <span className="animate-blink">_</span>
-                        )}
+                        {i === arr.length - 1 && <span className="animate-blink">_</span>}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* ── ERROR ── */}
               {error && (
                 <div className="cyber-panel p-5 mb-6 border-cyber-red/30 bg-red-500/5 animate-fade-up">
                   <div className="flex items-start gap-3">
@@ -369,16 +336,14 @@ export default function Home() {
                 </div>
               )}
 
-              {/* ── RESULTS ── */}
               {results && !scanning && (
                 <div className="animate-fade-up">
                   <ScanResultsView results={results} onDownloadPDF={handleDownloadPDF} />
                 </div>
               )}
 
-              {/* ── FEATURES (empty state) ── */}
               {!results && !scanning && !error && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8" style={{ animationDelay: '0.2s' }}>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
                   {[
                     { icon: '🔍', label: 'Subdomains', desc: 'SecurityTrails API' },
                     { icon: '🔌', label: 'Open Ports', desc: 'Shodan API' },
@@ -401,7 +366,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ── FOOTER ── */}
         <footer className="relative z-10 mt-16 border-t border-cyber-border py-6">
           <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="font-mono text-xs text-cyber-muted">
@@ -414,7 +378,6 @@ export default function Home() {
         </footer>
       </div>
 
-      {/* ── AUTH MODAL ── */}
       {showAuth && (
         <AuthModal
           onClose={() => setShowAuth(false)}
