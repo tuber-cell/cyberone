@@ -1,4 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
+import { createServiceClient } from '@/lib/supabase'
+import { extractToken } from '@/lib/auth'
 
 export const config = {
   api: { bodyParser: true },
@@ -69,6 +71,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         { name: 'React', category: 'JavaScript Frameworks' },
       ],
     },
+  }
+
+  // ============================================================
+  // SAVE TO DATABASE (for logged-in users)
+  // ============================================================
+  const user = extractToken(req)
+  
+  if (user && user.userId) {
+    try {
+      const supabase = createServiceClient()
+      const { error } = await supabase.from('scans').insert({
+        user_id: user.userId,
+        target: cleanTarget,
+        results_json: mockResults,
+        created_at: new Date().toISOString(),
+      })
+      
+      if (error) {
+        console.error('Database insert error:', error.message)
+      } else {
+        console.log('Scan saved for user:', user.userId, 'target:', cleanTarget)
+      }
+    } catch (dbError) {
+      console.error('Database error:', dbError)
+    }
   }
 
   // Send response with 'results' wrapper
